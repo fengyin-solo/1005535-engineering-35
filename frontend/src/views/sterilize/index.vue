@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('sterilize')
 const columns = ["验证编号", "灭菌设备", "灭菌程序", "装载方式", "温度探头数", "灭菌保持时间", "验证日期", "验证状态"]
 const actions = ["提交验证", "确认验证", "作废验证"]
 const statuses = ["待验证", "灭菌中", "已验证", "已失效"]
-const stats = [{"label": "待验证程序", "value": 0}, {"label": "灭菌中批次", "value": 0}, {"label": "已验证程序", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '灭菌验证列表读取失败'
   }

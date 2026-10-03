@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('gowning')
 const columns = ["确认编号", "洁净级别", "更衣步骤", "接触碟结果", "确认人", "确认日期", "复确认日期", "确认状态"]
 const actions = ["提交确认", "确认通过", "要求复确认"]
 const statuses = ["待确认", "确认中", "已确认", "需复确认"]
-const stats = [{"label": "待确认人员", "value": 0}, {"label": "确认中人员", "value": 0}, {"label": "需复确认人员", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '更衣确认列表读取失败'
   }

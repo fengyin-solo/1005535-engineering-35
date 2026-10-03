@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('changecontrol')
 const columns = ["变更编号", "变更类别", "涉及工序", "变更内容", "风险评估", "审批人", "生效日期", "变更状态"]
 const actions = ["提交评估", "批准变更", "退回变更"]
 const statuses = ["待评估", "评估中", "已批准", "已拒绝"]
-const stats = [{"label": "待评估变更", "value": 0}, {"label": "评估中变更", "value": 0}, {"label": "本月批准数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '变更控制列表读取失败'
   }

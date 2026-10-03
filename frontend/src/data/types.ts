@@ -36,3 +36,32 @@ export type OverviewResult = {
   cards: { label: string; value: number }[]
   modules: { name: string; created: number; pending: number; abnormal: number }[]
 }
+
+export type ModuleStat = { label: string; value: number }
+
+export type ImportResult = {
+  ok: boolean
+  added: number
+  skipped: number
+  total: number
+  message: string
+}
+
+export type BootLogEntry = {
+  action: string
+  at: string
+  detail: string
+}
+
+export type StorageMeta = {
+  schemaVersion: number
+  seededAt: string
+  lastResetAt: string
+  log: BootLogEntry[]
+}
+
+export type ChecklistItem = {
+  label: string
+  pass: boolean
+  detail: string
+}

@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('recall')
 const columns = ["召回编号", "涉及批号", "召回级别", "召回原因", "召回数量", "通知日期", "完成日期", "召回状态"]
 const actions = ["启动召回", "确认完成", "撤销召回"]
 const statuses = ["待启动", "调查中", "已完成", "已撤销"]
-const stats = [{"label": "待启动召回", "value": 0}, {"label": "调查中召回", "value": 0}, {"label": "已完成召回数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '产品召回列表读取失败'
   }

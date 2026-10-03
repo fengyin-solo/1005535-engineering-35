@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('deviation')
 const columns = ["偏差编号", "偏差类型", "发生工序", "偏差描述", "根本原因", "纠正措施", "责任人", "偏差状态"]
 const actions = ["提交调查", "关闭偏差", "升级偏差"]
 const statuses = ["待处理", "调查中", "已关闭", "已升级"]
-const stats = [{"label": "待处理偏差", "value": 0}, {"label": "调查中偏差", "value": 0}, {"label": "本月关闭数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '偏差处理列表读取失败'
   }

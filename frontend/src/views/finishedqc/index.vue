@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('finishedqc')
 const columns = ["检验编号", "产品批号", "检验项目", "标准规定", "检验结果", "判定结论", "检验人", "检验状态"]
 const actions = ["提交检验", "判定合格", "判定不合格"]
 const statuses = ["待检验", "检验中", "已合格", "不合格"]
-const stats = [{"label": "待检验批次", "value": 0}, {"label": "检验中批次", "value": 0}, {"label": "不合格批次数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '成品检验列表读取失败'
   }

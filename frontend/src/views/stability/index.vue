@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('stability')
 const columns = ["考察编号", "考察批号", "考察条件", "考察时间点", "检验项目", "考察结果", "考察人", "考察状态"]
 const actions = ["提交考察", "确认完成", "终止考察"]
 const statuses = ["待考察", "考察中", "已完成", "已终止"]
-const stats = [{"label": "待考察批次", "value": 0}, {"label": "考察中批次", "value": 0}, {"label": "已完成考察数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '稳定性考察列表读取失败'
   }

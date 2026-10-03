@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('training')
 const columns = ["培训编号", "培训主题", "受训岗位", "培训方式", "考核成绩", "培训日期", "有效期至", "培训状态"]
 const actions = ["提交培训", "判定合格", "判定未通过"]
 const statuses = ["待培训", "培训中", "已合格", "未通过"]
-const stats = [{"label": "待培训人员", "value": 0}, {"label": "培训中人员", "value": 0}, {"label": "未通过人员数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '人员培训列表读取失败'
   }

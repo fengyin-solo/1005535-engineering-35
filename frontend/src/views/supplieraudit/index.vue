@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('supplieraudit')
 const columns = ["审计编号", "供应商名称", "物料类别", "审计方式", "缺陷项数", "审计结论", "整改期限", "审计状态"]
 const actions = ["提交审计", "判定通过", "要求整改"]
 const statuses = ["待审计", "审计中", "已通过", "需整改"]
-const stats = [{"label": "待审计供应商", "value": 0}, {"label": "审计中供应商", "value": 0}, {"label": "需整改供应商数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '供应商审计列表读取失败'
   }

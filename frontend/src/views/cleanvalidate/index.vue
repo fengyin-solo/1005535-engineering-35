@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('cleanvalidate')
 const columns = ["验证编号", "设备名称", "清洁规程", "取样点", "残留限度", "检测结果", "验证人", "验证状态"]
 const actions = ["提交验证", "确认验证", "判定失败"]
 const statuses = ["待验证", "验证中", "已验证", "验证失败"]
-const stats = [{"label": "待验证设备", "value": 0}, {"label": "验证中设备", "value": 0}, {"label": "已验证设备", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '清洁验证列表读取失败'
   }

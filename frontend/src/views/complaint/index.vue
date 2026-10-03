@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('complaint')
 const columns = ["投诉编号", "投诉来源", "涉及产品", "投诉内容", "调查结论", "处理措施", "回复日期", "投诉状态"]
 const actions = ["受理投诉", "回复投诉", "关闭投诉"]
 const statuses = ["待受理", "调查中", "已回复", "已关闭"]
-const stats = [{"label": "待受理投诉", "value": 0}, {"label": "调查中投诉", "value": 0}, {"label": "本月关闭数", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '质量投诉列表读取失败'
   }

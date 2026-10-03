@@ -77,6 +77,7 @@ import {
   downloadEntries,
   listEntries,
   moduleMeta,
+  moduleStats,
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
@@ -85,7 +86,7 @@ const meta = moduleMeta('annualreview')
 const columns = ["回顾编号", "回顾年度", "涉及产品", "批次数", "偏差总数", "回顾结论", "审批人", "回顾状态"]
 const actions = ["提交回顾", "批准回顾", "退回修改"]
 const statuses = ["待回顾", "回顾中", "已批准", "已退回"]
-const stats = [{"label": "待回顾报告", "value": 0}, {"label": "回顾中报告", "value": 0}, {"label": "已批准报告", "value": 0}]
+const stats = ref<Array<{ label: string; value: number }>>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +129,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    stats.value = moduleStats(meta.key)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '年度质量回顾列表读取失败'
   }
