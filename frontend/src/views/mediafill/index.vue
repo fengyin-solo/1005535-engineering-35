@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('mediafill')
 const columns = ["灌装编号", "灌装规格", "灌装批量", "培养温度", "培养天数", "污染瓶数", "判定结论", "灌装状态"]
 const actions = ["提交灌装", "判定结果", "终止灌装"]
 const statuses = ["待灌装", "灌装中", "已判定", "已终止"]
-const stats = [{"label": "待灌装批次", "value": 0}, {"label": "灌装中批次", "value": 0}, {"label": "污染瓶总数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

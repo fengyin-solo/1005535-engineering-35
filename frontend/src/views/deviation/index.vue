@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('deviation')
 const columns = ["偏差编号", "偏差类型", "发生工序", "偏差描述", "根本原因", "纠正措施", "责任人", "偏差状态"]
 const actions = ["提交调查", "关闭偏差", "升级偏差"]
 const statuses = ["待处理", "调查中", "已关闭", "已升级"]
-const stats = [{"label": "待处理偏差", "value": 0}, {"label": "调查中偏差", "value": 0}, {"label": "本月关闭数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('finishedqc')
 const columns = ["检验编号", "产品批号", "检验项目", "标准规定", "检验结果", "判定结论", "检验人", "检验状态"]
 const actions = ["提交检验", "判定合格", "判定不合格"]
 const statuses = ["待检验", "检验中", "已合格", "不合格"]
-const stats = [{"label": "待检验批次", "value": 0}, {"label": "检验中批次", "value": 0}, {"label": "不合格批次数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

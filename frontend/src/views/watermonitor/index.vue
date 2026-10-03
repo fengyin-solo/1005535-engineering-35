@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('watermonitor')
 const columns = ["取样点", "水系统类别", "电导率", "总有机碳", "微生物限度", "取样日期", "检验人", "水质状态"]
 const actions = ["提交检测", "判定合格", "标记不合格"]
 const statuses = ["待取样", "检测中", "已合格", "不合格"]
-const stats = [{"label": "待取样点位", "value": 0}, {"label": "检测中样品", "value": 0}, {"label": "不合格点位数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

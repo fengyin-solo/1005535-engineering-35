@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('retainsample')
 const columns = ["留样编号", "对应批号", "留样数量", "留样期限", "存放条件", "取样日期", "销毁日期", "留样状态"]
 const actions = ["登记留样", "标记到期", "办理销毁"]
 const statuses = ["待留样", "已留样", "已到期", "已销毁"]
-const stats = [{"label": "待留样批次", "value": 0}, {"label": "已留样批次", "value": 0}, {"label": "本月销毁数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

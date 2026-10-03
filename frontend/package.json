@@ -5,6 +5,8 @@
   "type": "module",
   "repoKind": "frontend-only",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "reset": "node scripts/reset.mjs",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",

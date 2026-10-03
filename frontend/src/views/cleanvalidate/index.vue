@@ -7,6 +7,15 @@
       </div>
       <div class="page-actions">
         <button class="btn primary" type="button" @click="openCreate">登记清洁验证记录</button>
+        <button class="btn" type="button" @click="triggerImport">导入清洁验证记录</button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="application/json,.json"
+          hidden
+          @change="handleImportFile"
+        />
+        <button class="btn ghost" type="button" @click="resetCurrent">复位本模块</button>
         <button class="btn" type="button" @click="exportRows">导出清洁验证清单</button>
       </div>
     </header>
@@ -47,7 +56,7 @@
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
-              v-for="action in actions"
+              v-for="action in availableActions(row)"
               :key="action"
               class="link"
               type="button"
@@ -58,7 +67,32 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无清洁验证数据，可先登记清洁验证记录</td>
+          <td :colspan="columns.length + 2" class="empty-state">暂无清洁验证数据，可先登记或导入清洁验证记录</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="section-title">清洁验证清单（导入动作流水）</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>时间</th><th>动作</th><th>结果</th><th>收到</th><th>新增</th><th>重复跳过</th><th>挡回</th><th>异常量</th><th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, index) in importLog" :key="index">
+          <td>{{ formatTime(item.time) }}</td>
+          <td>{{ item.action }}</td>
+          <td :class="item.ok ? '' : 'error-text'">{{ item.ok ? '成功' : '挡回' }}</td>
+          <td>{{ item.received }}</td>
+          <td>{{ item.inserted }}</td>
+          <td>{{ item.duplicated }}</td>
+          <td class="error-text">{{ item.rejected }}</td>
+          <td :class="{ 'error-text': item.abnormal > 0 }">{{ item.abnormal }}</td>
+          <td>{{ item.note }}</td>
+        </tr>
+        <tr v-if="!importLog.length">
+          <td colspan="9" class="empty-state">还没有导入动作，导入示例见 frontend/examples/cleanvalidate-import.json</td>
         </tr>
       </tbody>
     </table>
@@ -75,29 +109,50 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  importEntries,
   listEntries,
+  listImportLog,
+  metricValues,
   moduleMeta,
+  resetModule,
   runAction as applyAction,
 } from '@/api/local-service'
-import type { EntryRow } from '@/data/types'
+import type { EntryRow, ImportLogEntry } from '@/data/types'
 
 const meta = moduleMeta('cleanvalidate')
-const columns = ["验证编号", "设备名称", "清洁规程", "取样点", "残留限度", "检测结果", "验证人", "验证状态"]
-const actions = ["提交验证", "确认验证", "判定失败"]
-const statuses = ["待验证", "验证中", "已验证", "验证失败"]
-const stats = [{"label": "待验证设备", "value": 0}, {"label": "验证中设备", "value": 0}, {"label": "已验证设备", "value": 0}]
+const columns = meta.fields
+const actions = meta.actions
+const statuses = meta.statuses
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+const fileInput = ref<HTMLInputElement | null>(null)
+const importLog = ref<ImportLogEntry[]>([])
+
+// 指标卡与概览共用同一套派生数据，异常量各入口一致。
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
+
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+// 状态只能单向逐级推进：只给出「当前状态的下一步」动作，越级动作在服务层也会被挡回。
+function availableActions(row: EntryRow): string[] {
+  const index = statuses.indexOf(String(row.status))
+  if (index < 0 || index >= statuses.length - 1) {
+    return []
+  }
+  const nextStatus = statuses[index + 1]
+  return actions.filter((action) => meta.actionTargets[action] === nextStatus)
+}
 
 function resetFilters() {
   filters.value = {}
@@ -109,7 +164,55 @@ function exportRows() {
 }
 
 function openCreate() {
-  errorMessage.value = '清洁验证记录登记入口尚未接入审批流'
+  errorMessage.value = '清洁验证记录登记入口尚未接入审批流，可先用导入'
+}
+
+function resetCurrent() {
+  resetModule(meta.key)
+  errorMessage.value = '本模块已复位到种子数据'
+  reloadLog()
+  reload()
+}
+
+function triggerImport() {
+  errorMessage.value = ''
+  fileInput.value?.click()
+}
+
+function handleImportFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) {
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(String(reader.result))
+    } catch {
+      errorMessage.value = '导入文件不是合法 JSON，整批挡回'
+      return
+    }
+    const result = importEntries(meta.key, parsed)
+    errorMessage.value = result.message
+    reloadLog()
+    reload()
+  }
+  reader.onerror = () => {
+    errorMessage.value = '导入文件读取失败'
+  }
+  reader.readAsText(file)
+}
+
+function formatTime(iso: string): string {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString()
+}
+
+function reloadLog() {
+  importLog.value = listImportLog()
 }
 
 function runAction(action: string, row: EntryRow) {
@@ -133,5 +236,8 @@ function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  reload()
+  reloadLog()
+})
 </script>

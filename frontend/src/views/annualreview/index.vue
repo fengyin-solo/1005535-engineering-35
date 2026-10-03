@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('annualreview')
 const columns = ["回顾编号", "回顾年度", "涉及产品", "批次数", "偏差总数", "回顾结论", "审批人", "回顾状态"]
 const actions = ["提交回顾", "批准回顾", "退回修改"]
 const statuses = ["待回顾", "回顾中", "已批准", "已退回"]
-const stats = [{"label": "待回顾报告", "value": 0}, {"label": "回顾中报告", "value": 0}, {"label": "已批准报告", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('changecontrol')
 const columns = ["变更编号", "变更类别", "涉及工序", "变更内容", "风险评估", "审批人", "生效日期", "变更状态"]
 const actions = ["提交评估", "批准变更", "退回变更"]
 const statuses = ["待评估", "评估中", "已批准", "已拒绝"]
-const stats = [{"label": "待评估变更", "value": 0}, {"label": "评估中变更", "value": 0}, {"label": "本月批准数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

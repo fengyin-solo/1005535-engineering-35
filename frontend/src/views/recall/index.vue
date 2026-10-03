@@ -75,6 +75,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  metricValues,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -85,7 +86,9 @@ const meta = moduleMeta('recall')
 const columns = ["召回编号", "涉及批号", "召回级别", "召回原因", "召回数量", "通知日期", "完成日期", "召回状态"]
 const actions = ["启动召回", "确认完成", "撤销召回"]
 const statuses = ["待启动", "调查中", "已完成", "已撤销"]
-const stats = [{"label": "待启动召回", "value": 0}, {"label": "调查中召回", "value": 0}, {"label": "已完成召回数", "value": 0}]
+const stats = computed(() =>
+  meta.metrics.map((label, index) => ({ label, value: metricValues(meta.key, rows.value)[index] })),
+)
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)

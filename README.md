@@ -12,24 +12,61 @@
 ```text
 .
 ├── frontend/                 Vue 3 + Vite + TypeScript 前端（唯一运行单元）
+│   ├── scripts/setup.mjs     引导脚本：查环境、拉依赖、校验种子（npm run setup）
+│   ├── scripts/reset.mjs     本地复位：校验种子、清构建缓存（npm run reset）
+│   ├── examples/             导入用示例数据
 │   ├── src/views/            每个业务模块一个页面
-│   ├── src/api/local-service.ts   本地数据服务：列表、筛选、动作流转、导出
-│   ├── src/data/             模块元数据 / 示例数据 / localStorage 持久化
+│   ├── src/api/local-service.ts   本地数据服务：列表、筛选、动作流转、导入、导出
+│   ├── src/data/             模块元数据 / seed.json 种子 / localStorage 持久化 / 状态派生
 │   ├── src/stores/           会话与筛选状态
 │   └── vite.config.ts        dev server 配置（open: false，无 /api 代理）
+├── Makefile                  make setup / make reset / make frontend
 ├── .gitignore
 └── docker-compose.yml
 ```
 
-## 启动
+## 快速开始（两条路）
+
+新同事克隆仓库后，**先跑引导脚本**：
 
 ```bash
 cd frontend
-npm install
-npm run dev
+npm run setup        # 等价于仓库根目录 make setup
 ```
 
-前端默认监听 `http://127.0.0.1:5173/`，dev server 不会自动打开浏览器，需要自己访问。
+引导脚本依次做三件事：
+
+1. 检查 Node 版本（要求 Node >= 18）；
+2. 安装依赖（有 `package-lock.json` 走 `npm ci`，否则 `npm install`）；
+3. 校验种子数据 `frontend/src/data/seed.json`（模块齐全、状态合法、异常量在 0~总量之间）。
+
+然后启动：
+
+```bash
+npm run dev          # http://127.0.0.1:5173/
+```
+
+首次打开页面时，浏览器会把**同一份** `seed.json` 灌进 `localStorage`（键 `pharma-cleanroom:entries`，带版本号）。
+
+**本地开发要复位时**，有复位入口（两条复位都读同一份种子）：
+
+- 页面复位（推荐）：运营概览页右上「复位本地数据」，清空全部模块的浏览器旧数据并重灌种子；
+  清洁验证页另有「复位本模块」；
+- 命令行复位：`npm run reset`（或 `make reset`），先校验种子，再清 `node_modules/.vite`、`dist`
+  这类本地构建缓存；浏览器里的数据按上面的页面复位清。
+
+> 注意：命令行脚本无法直接操作浏览器存储，所以「清浏览器旧数据」这一步放在页面上做，
+> 两边用的都是 `src/data/seed.json` 这一份种子，不会出现两边数据不一致。
+
+### 依赖清单与示例数据来源
+
+| 项 | 说明 |
+| --- | --- |
+| 运行时 | Node.js >= 18（开发用 20 验证） |
+| 前端依赖 | `vue@^3.4`、`vue-router@^4.3`、`pinia@^2.1`（见 `frontend/package.json`） |
+| 构建依赖 | `vite@^5.2`、`@vitejs/plugin-vue@^5`、`typescript@^5.4`、`vue-tsc@^2` |
+| 种子数据 | `frontend/src/data/seed.json`，引导脚本、页面播种、各复位入口共用这一份 |
+| 导入示例 | `frontend/examples/cleanvalidate-import.json`（清洁验证页导入用，含重复记录演示去重） |
 
 生产构建：
 
@@ -66,6 +103,26 @@ npm run build
 - 每个模块的页面在 `frontend/src/views/<模块>/index.vue`，页面只负责渲染，读写统一走
   `frontend/src/api/local-service.ts`。
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
-  `frontend/src/data/seed.ts`。
+  `frontend/src/data/seed.json`（经 `src/data/seed.ts` 归一化后导出）。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
-- 想回到初始数据：清掉浏览器里 `pharma-cleanroom:entries` 这一项，或调用 `resetModule(模块)`。
+
+### 状态机规则
+
+- **单向逐级推进**：状态链按 `modules.ts` 里 `statuses` 的顺序推进，只能走到「当前状态的下一步」；
+  越级（如「待验证」直接「已验证」）和回退（如「已复核」退回「编制中」）一律挡回并提示。
+- **异常量同一套**：`pending` / `abnormal` 不由人工填写，统一由 `src/data/derive.ts` 按状态派生
+  （命中「超标 / 不合格 / 失败 / 拒绝 / 冻结 / 失效 / 撤销 / 作废 / 终止 / 升级 / 整改 / 复确认 /
+  未通过 / 退回」等关键字的状态为异常态，末态不再待处理）。概览卡片、各模块指标卡、导入结果
+  全部走这套派生，汇总数和明细永远对得上。
+- **存量迁移**：`localStorage` 数据带版本号；读到旧版（无版本）数据时，按上述规则回填
+  `pending` / `abnormal` 并补齐缺失模块后落盘，旧记录不用手工清理。
+
+### 导入规则（清洁验证页）
+
+- 入口：清洁验证页「导入清洁验证记录」，文件格式参考 `frontend/examples/cleanvalidate-import.json`，
+  支持 `{ "records": [...] }` 或直接传数组，每行至少要带业务编号（该模块第一个字段，清洁验证为「验证编号」）和合法 `status`。
+- **同一份业务模块重复导入只算一次**：业务编号与存量重复、或同一文件内重复的记录自动跳过，不重复计数。
+- **异常量给极值整批挡回**：申报的 `summary.abnormal` 必须是 0~记录条数之间的整数，负数或超过总量直接挡回；
+  申报值与按状态实算的异常量对不上也整批挡回，不落库。
+- **动作反映到清洁验证清单**：每次导入（收到 / 新增 / 重复跳过 / 挡回 / 异常量）都会写进页面下方
+  「清洁验证清单（导入动作流水）」，复位本地数据时一并清空。
